@@ -24,13 +24,73 @@
     var canvas = document.getElementById('myCanvas');
     paper.setup(canvas);
     var tool = new paper.Tool();
+    var pathy = new paper.Path();
+    var color = paper.Color.random();
+    pathy.strokeColor = color;
 
     // getting the URL (you may want to use for Exercise 3)
     var url = window.location.href;
+    var large = true; 
+  
+  
+    tool.onMouseMove = function(event) {
+      pathy.add(event.point);
+      let message = {
+        x: event.point.x, 
+        y: event.point.y,
+        c: color, 
+        z: false,
+    };
+    setTimeout(()=>{
+      socket.send(JSON.stringify(message));
+    }, 300);
+  }
+  
+  
+    tool.onMouseUp = function(event) {
+      pathy = new paper.Path();
+      pathy.strokeColor = color;
+      let message = {
+        z: true,
+      }
+      socket.send(JSON.stringify(message));
+    };
 
-    // var socket = new WebSocket(
-    //     'wss://<your url here>/ws/draw');
+  // create a new websocket connecting to the server
+  var socket = new WebSocket('wss://p3-websockets-lucychen0103-fiatlucy.codeanyapp.com/ws/draw');
 
+  var path = new paper.Path();
+  
+  socket.onmessage = function(message) {
+      var gett = JSON.parse(message.data);
+      var save = gett.c;
+      var copy_color = new paper.Color(save[1], save[2], save[3] );
+//       if (gett.z) {
+//         path = new paper.Path();
+//       }
+//     else{
+    if (window.location.href.indexOf("?size=large") > -1){
+      if (copy_color.equals(path.strokeColor)){
+        path.add(new paper.Point(gett.x, gett.y));
+      }
+      else{
+        path = new paper.Path();
+        path.strokeColor= copy_color;
+        path.add(new paper.Point(gett.x, gett.y));
+      }
+//     }
+    }
+      };
+ 
+
+  // use when sending a message to the server
+  // to be broadcasted to all clients, please add a delay
+//   socket.send(message);
+
+  // notify console if socket closes unexpectedly
+  socket.onclose = function(e) {
+    console.error('Chat socket closed unexpectedly');
+};
 
 </script>
 </html>
